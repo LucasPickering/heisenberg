@@ -1,17 +1,35 @@
 import gleam/bytes_tree
+import gleam/http/request.{type Request}
 import gleam/http/response.{type Response}
+import lustre/attribute as attr
 import lustre/element
 import lustre/element/html.{html}
-import lustre/vdom/vnode
-import mist.{type ResponseData}
+import lustre/vdom/vnode.{type Element}
+import mist.{type Connection, type ResponseData}
 
-pub fn greet(name: String) -> Response(ResponseData) {
-  let html =
-    html([], [
-      html.head([], [html.title([], "Greetings!")]),
-      html.body([], [html.h1([], [html.text("Hey there, " <> name <> "!")])]),
-    ])
-  respond(200, html)
+pub fn routes(req: Request(Connection)) -> Response(ResponseData) {
+  case request.path_segments(req) {
+    ["weather"] -> weather()
+    _ -> not_found()
+  }
+}
+
+fn weather() -> Response(ResponseData) {
+  let create_tab = fn(label: String) -> Element(_) {
+    html.button(
+      [
+        attr.class("nav-tab"),
+        // attr.class(case model.active_tab == tab {
+      //   True -> "active"
+      //   False -> ""
+      // }),
+      // event.on_click(SelectTab(tab)),
+      ],
+      [element.text(label)],
+    )
+  }
+
+  respond(200, create_tab("Weather"))
 }
 
 pub fn not_found() -> Response(ResponseData) {
@@ -23,7 +41,7 @@ pub fn not_found() -> Response(ResponseData) {
   respond(404, html)
 }
 
-fn respond(status_code: Int, html: vnode.Element(a)) -> Response(ResponseData) {
+fn respond(status_code: Int, html: Element(a)) -> Response(ResponseData) {
   let res = response.new(status_code)
   response.set_body(
     res,
