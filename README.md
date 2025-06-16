@@ -26,7 +26,14 @@ gleam test  # Run the tests
 
 ## Pi Setup
 
+### Install Erlang VM
+
+There's no OTP 28 in the Debian package registry so you have to build it from source on the Pi (it takes a while):
+
 ```sh
-sudo apt install erlang
-echo '@chromium-browser --kiosk http://localhost:3000 > /home/pi/.config/lxsession/LXDE-pi/autostart'
+# Build erlang from source
+# https://www.erlang.org/downloads
+./configure && make && sudo make install
 ```
+
+Then copy `heisenberg_ui.desktop` to `/home/pi/.config/autostart/heisenberg_ui.desktop`

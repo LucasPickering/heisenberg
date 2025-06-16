@@ -20,7 +20,7 @@ else
     echo "Running in dev mode..."
     # Run the program directly for testing
     ssh -t $PI_HOST "
-        # sudo systemctl stop heisenberg;
+        sudo systemctl stop heisenberg || true;
         cd ./heisenberg;
         ./entrypoint.sh run"
 fi
