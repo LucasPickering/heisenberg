@@ -6,6 +6,7 @@
 ```sh
 gleam add heisenberg@1
 ```
+
 ```gleam
 import heisenberg
 
@@ -21,4 +22,11 @@ Further documentation can be found at <https://hexdocs.pm/heisenberg>.
 ```sh
 gleam run   # Run the project
 gleam test  # Run the tests
+```
+
+## Pi Setup
+
+```sh
+sudo apt install erlang
+echo '@chromium-browser --kiosk http://localhost:3000 > /home/pi/.config/lxsession/LXDE-pi/autostart'
 ```
