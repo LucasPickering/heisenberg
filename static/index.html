@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en-US">
+    <head>
+        <title>Heisenberg</title>
+        <link href="/static/styles.css" rel="stylesheet"></link>
+    </head>
+    <body>
+        <div id="content"></div>
+        <script>
+            // Grab the page name from the end of the path
+            const pathSegments = window.location.pathname.split("/");
+            const page = pathSegments[pathSegments.length - 1];
+            const eventSource = new EventSource(`/content/${page}`);
+            eventSource.onmessage = function (event) {
+                document.getElementById("content").innerHTML = event.data;
+            };
+        </script>
+    </body>
+</html>
