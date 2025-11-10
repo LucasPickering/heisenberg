@@ -1,8 +1,6 @@
-import gleam/erlang/process
 import gleam/io
-import mist
+import heisenberg
 import radiate
-import routes.{routes}
 
 pub fn main() {
   // Hot reloading
@@ -16,12 +14,5 @@ pub fn main() {
     })
     |> radiate.start()
 
-  // Start the HTTP server
-  let assert Ok(_) =
-    routes
-    |> mist.new
-    |> mist.port(3000)
-    |> mist.start
-
-  process.sleep_forever()
+  heisenberg.main()
 }

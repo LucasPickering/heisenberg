@@ -10,11 +10,15 @@ import lustre/element
 import lustre/element/html.{html}
 import lustre/vdom/vnode.{type Element}
 import mist.{type Connection, type ResponseData}
+import model
 import page.{type Page}
 import repeatedly
 import view
 
-pub fn routes(req: Request(Connection)) -> Response(ResponseData) {
+pub fn routes(
+  model_actor: model.ModelActor,
+  req: Request(Connection),
+) -> Response(ResponseData) {
   case request.path_segments(req) {
     // TODO redirect to /weather
     [] -> serve_file(["index.html"])
@@ -29,7 +33,7 @@ pub fn routes(req: Request(Connection)) -> Response(ResponseData) {
     // SSE endpoints page HTML as the state changes
     ["content", page] -> {
       case page.parse(page) {
-        Ok(page) -> sse_connection(req, page)
+        Ok(page) -> sse_connection(model_actor, req, page)
         Error(Nil) -> not_found()
       }
     }
@@ -62,6 +66,7 @@ fn html_response(status_code: Int, html: Element(a)) -> Response(ResponseData) {
 /// Start an SSE connection that pushes HTML content to the client. The client
 /// should replace its main content with the returned HTML
 fn sse_connection(
+  model_actor: model.ModelActor,
   req: Request(Connection),
   page: Page,
 ) -> Response(ResponseData) {
@@ -69,23 +74,42 @@ fn sse_connection(
     req,
     response.new(200),
     init: fn(subj) {
-      repeatedly.call(100, Nil, fn(_state, _count) { process.send(subj, Nil) })
-      Ok(actor.initialised(Nil))
+      // Get the current global state from the model actor
+      let global_model = model.get_model(model_actor)
+      let repeater =
+        repeatedly.call(1000, Nil, fn(_state, _count) {
+          // Every second, ask for the new global model
+          let global_model = model.get_model(model_actor)
+          process.send(subj, Refresh(global_model))
+        })
+      let connection_model =
+        ConnectionModel(model: global_model, repeater: repeater)
+      Ok(actor.initialised(connection_model))
     },
-    loop: fn(_state, _message, conn) {
+    loop: fn(model: ConnectionModel, message: ConnectionMessage, conn) {
+      // Check if the global model has changed. If so, send a message to the
+      // client with the new HTML
+      let Refresh(global_model) = message
+      // If data hasn't changed, don't send an event to the client
+      // TODO
+      // use <- bool.guard(
+      //   when: global_model == model.model,
+      //   return: actor.continue(model),
+      // )
+
       // Generate the new HTML content
       let event =
-        view.view(page)
+        view.view(page, model.model)
         |> element.to_string_tree
         |> mist.event
       // Send it to the client
       case mist.send_event(conn, event) {
         Ok(_) -> {
-          actor.continue(Nil)
+          actor.continue(ConnectionModel(..model, model: global_model))
         }
         Error(_) -> {
           // TODO do we need to stop repeater here?
-          // repeatedly.stop(state.repeater)
+          repeatedly.stop(model.repeater)
           actor.stop()
         }
       }
@@ -110,4 +134,14 @@ fn serve_file(path: List(String)) -> Response(ResponseData) {
 
 fn guess_content_type(path: String) -> String {
   "TODO"
+}
+
+/// State for a single SSE connection
+type ConnectionModel {
+  ConnectionModel(model: model.GlobalModel, repeater: repeatedly.Repeater(Nil))
+}
+
+/// TODO
+type ConnectionMessage {
+  Refresh(model: model.GlobalModel)
 }
