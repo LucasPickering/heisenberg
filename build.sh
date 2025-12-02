@@ -4,9 +4,10 @@ set -ex
 
 PI_HOST=pi@192.168.0.23
 PROJECT_DIR=/home/pi/heisenberg
-FILES="heisenberg.service config.json build/erlang-shipment/"
+PI_TARGET=armv7-unknown-linux-musleabihf
+FILES="heisenberg.service config.json target/$PI_TARGET/release/heisenberg"
 
-gleam export erlang-shipment
+cargo build --release --target $PI_TARGET
 rsync -r -vv $FILES $PI_HOST:$PROJECT_DIR
 
 if [ "$1" = "--release" ]; then
@@ -20,7 +21,7 @@ else
     echo "Running in dev mode..."
     # Run the program directly for testing
     ssh -t $PI_HOST "
-        sudo systemctl stop heisenberg || true;
+        sudo systemctl stop heisenberg;
         cd ./heisenberg;
-        ./entrypoint.sh run"
+        RUST_BACKTRACE=1 ./heisenberg"
 fi

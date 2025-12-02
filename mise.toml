@@ -1,0 +1,20 @@
+[env]
+PI_DIR = "/home/pi/heisenberg"
+PI_HOST = "pi@192.168.0.23"
+PI_TARGET = "armv7-unknown-linux-musleabihf"
+
+[tasks.build]
+description = "Build for the Pi"
+sources = ["Cargo.toml", "Cargo.lock", "src/"]
+run = "cargo build --release --target {{env.PI_TARGET}}"
+
+[tasks.copy]
+depends = ["build"]
+run = """rsync -r -vv \
+    heisenberg.service config.json target/{{env.PI_TARGET}}/release/heisenberg \
+    {{env.PI_HOST}}:{{env.PI_DIR}}"""
+
+[tasks.deploy]
+depends = ["copy"]
+description = "Run on the Pi"
+run = "ssh {{env.PI_HOST}} \"pkill -f xterm\""
