@@ -69,8 +69,8 @@ pub struct Unit {
 
 impl WeatherForecast {
     /// Get the current forecast period
-    pub fn now(&self) -> &ForecastPeriod {
-        &self.properties.periods[0]
+    pub fn now(&self) -> Option<&ForecastPeriod> {
+        self.properties.periods.first()
     }
 
     /// Get the list of periods that should be shown in the list. This skips
@@ -142,6 +142,9 @@ mod tests {
             },
         };
 
-        assert_eq!(forecast.now(), &period("2024-05-24T17:00:00Z", 1, 84, 1));
+        assert_eq!(
+            forecast.now().unwrap(),
+            &period("2024-05-24T17:00:00Z", 1, 84, 1)
+        );
     }
 }

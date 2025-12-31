@@ -9,23 +9,29 @@ use crate::{
     config::Config,
     state::{Message, State, Tx},
     util::spawn,
+    view::DIMENSIONS,
 };
 use ratatui::{
     DefaultTerminal, TerminalOptions, Viewport,
     crossterm::{
         self,
-        event::{self, EnableMouseCapture, Event, KeyCode, KeyEvent},
+        event::{
+            self, EnableMouseCapture, Event, KeyCode, KeyEvent, MouseButton,
+            MouseEvent, MouseEventKind,
+        },
         terminal::EnterAlternateScreen,
     },
-    layout::Rect,
 };
-use std::{io, sync::mpsc};
-
-const WIDTH: u16 = 32;
-const HEIGHT: u16 = 16;
+use std::{fs::OpenOptions, io, sync::mpsc};
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::{
+    Layer, filter::Targets, fmt::format::FmtSpan, layer::SubscriberExt,
+    util::SubscriberInitExt,
+};
 
 /// Initialize the TUI and start the main loop
 fn main() {
+    initialize_tracing();
     let config = Config::load().unwrap();
 
     // Restore terminal on exit
@@ -37,12 +43,7 @@ fn main() {
 
     let terminal = ratatui::init_with_options(TerminalOptions {
         // Lock the terminal to the Pi's dimensions
-        viewport: Viewport::Fixed(Rect {
-            x: 0,
-            y: 0,
-            width: WIDTH,
-            height: HEIGHT,
-        }),
+        viewport: Viewport::Fixed(DIMENSIONS.into()),
     });
     crossterm::execute!(
         io::stdout(),
@@ -83,12 +84,39 @@ fn run(config: Config, mut terminal: DefaultTerminal) {
         terminal.draw(|frame| view::draw(frame, &state)).unwrap();
         // Block until we get a message
         match rx.recv().unwrap() {
-            Message::Mode(mode) => state.mode = mode,
+            Message::NextMode => state.mode = state.mode.next(),
             Message::Quit => break,
             Message::Transit(transit) => state.transit = transit,
             Message::Weather(weather) => state.weather = weather,
         }
     }
+}
+
+fn initialize_tracing() {
+    let log_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open("./heisenberg.log")
+        .unwrap();
+
+    // Basically a minimal version of EnvFilter that doesn't require regexes
+    // https://github.com/tokio-rs/tracing/issues/1436#issuecomment-918528013
+    let targets: Targets = std::env::var("RUST_LOG")
+        .ok()
+        .and_then(|env| env.parse().ok())
+        .unwrap_or_else(|| {
+            Targets::new().with_target("heisenberg", LevelFilter::INFO)
+        });
+    let file_subscriber = tracing_subscriber::fmt::layer()
+        .with_file(true)
+        .with_line_number(true)
+        .with_writer(log_file)
+        .with_target(false)
+        .with_ansi(false)
+        .with_span_events(FmtSpan::NONE)
+        .with_filter(targets);
+    tracing_subscriber::registry().with(file_subscriber).init()
 }
 
 /// Handle user input and build the corresponding message. Return `None` if
@@ -98,6 +126,11 @@ fn input_message(event: Event) -> Option<Message> {
         Event::Key(KeyEvent {
             code: KeyCode::Esc, ..
         }) => Some(Message::Quit),
+        // Cycle mode on click/tap
+        Event::Mouse(MouseEvent {
+            kind: MouseEventKind::Up(MouseButton::Left),
+            ..
+        }) => Some(Message::NextMode),
         _ => None,
     }
 }

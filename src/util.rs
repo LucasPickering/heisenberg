@@ -1,7 +1,7 @@
 use crate::{config::Config, state::Tx};
 use serde::de::DeserializeOwned;
 use std::thread;
-use tracing::error;
+use tracing::{error, info};
 
 /// Spawn a background thread with access to the message channel
 pub fn spawn(
@@ -16,6 +16,7 @@ pub fn spawn(
 
 /// Make an HTTP GET request
 pub fn http_get<T: DeserializeOwned>(url: &str) -> Result<T, ()> {
+    info!("Fetching {url}");
     match ureq::get(url).call() {
         Ok(mut response) if response.status().is_success() => {
             let data: T = response.body_mut().read_json().expect("TODO");

@@ -2,16 +2,13 @@ use crate::{transit::TransitPredictions, weather::WeatherForecast};
 use std::{
     fmt::{self, Display},
     sync::mpsc::Sender,
-    time::Instant,
 };
 
 /// Global application state. This is modified by [Message]s sent to an
 /// mpsc channel
 pub struct State {
-    pub start: Instant,
-    pub weather: WeatherForecast,
     pub transit: TransitPredictions,
-    pub now: Instant,
+    pub weather: WeatherForecast,
     pub mode: Mode,
 }
 
@@ -19,8 +16,6 @@ impl Default for State {
     fn default() -> Self {
         Self {
             mode: Mode::Weather,
-            start: Instant::now(),
-            now: Instant::now(),
             transit: TransitPredictions::default(),
             weather: WeatherForecast::default(),
         }
@@ -29,8 +24,8 @@ impl Default for State {
 
 /// TODO
 pub enum Message {
-    /// Switch tabs
-    Mode(Mode),
+    /// Switch to the next tab in the list
+    NextMode,
     /// Exit the program
     Quit,
     /// Update transit predictions
@@ -53,7 +48,7 @@ impl Tx {
         // Send only fails if the receiver has been dropped. The main thread
         // always keeps it open, so if this fails the main thread is done. We
         // can just kill the thread
-        self.0.send(message);
+        self.0.send(message).expect("TODO");
     }
 }
 
@@ -67,6 +62,12 @@ pub enum Mode {
 impl Mode {
     /// List of all modes
     pub const ALL: [Self; 2] = [Self::Weather, Self::Transit];
+
+    /// Get the next mode in the list
+    pub fn next(self) -> Self {
+        let current = Self::ALL.iter().position(|m| *m == self).unwrap();
+        Self::ALL[(current + 1) % Self::ALL.len()]
+    }
 }
 
 impl Display for Mode {
