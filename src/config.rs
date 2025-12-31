@@ -3,7 +3,8 @@ use serde::Deserialize;
 use std::fs::File;
 use tracing::info;
 
-#[derive(Debug, Deserialize)]
+/// Global app configuration
+#[derive(Clone, Debug, Deserialize)]
 pub struct Config {
     pub forecast_office: String,
     pub forecast_gridpoint: (u32, u32),

@@ -7,7 +7,7 @@ use ratatui::{
 
 /// Draw to the terminal
 pub fn draw(frame: &mut Frame, state: &State) {
-    let [mode_area, time_area] =
+    let [mode_area, content_area] =
         Layout::vertical([Constraint::Length(1), Constraint::Min(0)])
             .areas(frame.area());
 
@@ -20,7 +20,7 @@ pub fn draw(frame: &mut Frame, state: &State) {
     let uptime = state.now - state.start;
     frame.render_widget(
         format!("Uptime: {:.1}s", uptime.as_secs_f32()),
-        time_area,
+        content_area,
     );
 }
 

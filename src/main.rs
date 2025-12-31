@@ -1,10 +1,13 @@
 mod config;
 mod state;
+mod util;
 mod view;
+mod weather;
 
 use crate::{
     config::Config,
-    state::{Message, Mode, State},
+    state::{Message, State},
+    util::spawn,
 };
 use ratatui::{
     DefaultTerminal, TerminalOptions, Viewport,
@@ -17,7 +20,7 @@ use ratatui::{
 };
 use std::{
     io,
-    sync::mpsc::{self, Sender},
+    sync::mpsc,
     thread,
     time::{Duration, Instant},
 };
@@ -57,22 +60,18 @@ fn main() {
 
 /// TODO explain architecture
 fn run(config: Config, mut terminal: DefaultTerminal) {
-    let mut state = State {
-        mode: Mode::Weather,
-        start: Instant::now(),
-        now: Instant::now(),
-    };
+    let mut state = State::default();
 
     let (tx, rx) = mpsc::channel();
 
     // Spawn background tasks
-    spawn(&tx, move |tx| {
+    spawn(&config, &tx, move |_, tx| {
         loop {
             thread::sleep(Duration::from_millis(100));
             tx.send(Message::Time(Instant::now()))?;
         }
     });
-    spawn(&tx, move |tx| {
+    spawn(&config, &tx, move |_, tx| {
         // Input handler
         loop {
             let event = event::read()?;
@@ -89,20 +88,9 @@ fn run(config: Config, mut terminal: DefaultTerminal) {
             Message::Quit => break,
             Message::SetMode(mode) => state.mode = mode,
             Message::Time(time) => state.now = time,
+            Message::Weather(weather) => state.weather = weather,
         }
     }
-}
-
-/// Message sender channel
-type Tx = Sender<Message>;
-
-/// Spawn a background thread with access to the message channel
-fn spawn(tx: &Tx, f: impl 'static + FnOnce(Tx) -> anyhow::Result<()> + Send) {
-    let tx = tx.clone();
-    thread::spawn(move || {
-        let result = f(tx);
-        // TODO log result
-    });
 }
 
 /// Handle user input and build the corresponding message. Return `None` if
