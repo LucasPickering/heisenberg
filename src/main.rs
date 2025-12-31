@@ -1,7 +1,11 @@
+mod config;
 mod state;
 mod view;
 
-use crate::state::{Message, Mode, State};
+use crate::{
+    config::Config,
+    state::{Message, Mode, State},
+};
 use ratatui::{
     DefaultTerminal, TerminalOptions, Viewport,
     crossterm::{
@@ -23,6 +27,8 @@ const HEIGHT: u16 = 16;
 
 /// Initialize the TUI and start the main loop
 fn main() {
+    let config = Config::load().unwrap();
+
     // Restore terminal on exit
     let original_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |panic_info| {
@@ -44,13 +50,13 @@ fn main() {
         EnterAlternateScreen,
         EnableMouseCapture,
     ).unwrap();
-    run(terminal);
+    run(config, terminal);
 
     ratatui::restore();
 }
 
 /// TODO explain architecture
-fn run(mut terminal: DefaultTerminal) {
+fn run(config: Config, mut terminal: DefaultTerminal) {
     let mut state = State {
         mode: Mode::Weather,
         start: Instant::now(),
