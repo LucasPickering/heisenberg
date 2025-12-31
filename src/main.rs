@@ -1,3 +1,8 @@
+//! TODO describe architecture
+//!
+//! This is a panic-first type program. Most errors are fatal. Anyhow has no
+//! power here!!
+
 mod config;
 mod state;
 mod transit;
@@ -12,7 +17,7 @@ use crate::{
     view::DIMENSIONS,
 };
 use ratatui::{
-    DefaultTerminal, TerminalOptions, Viewport,
+    DefaultTerminal, Terminal, TerminalOptions, Viewport,
     crossterm::{
         self,
         event::{
@@ -21,9 +26,14 @@ use ratatui::{
         },
         terminal::EnterAlternateScreen,
     },
+    prelude::CrosstermBackend,
 };
-use std::{fs::OpenOptions, io, sync::mpsc};
-use tracing::level_filters::LevelFilter;
+use std::{
+    fs::OpenOptions,
+    io::{self, Stdout},
+    sync::mpsc,
+};
+use tracing::{info, level_filters::LevelFilter};
 use tracing_subscriber::{
     Layer, filter::Targets, fmt::format::FmtSpan, layer::SubscriberExt,
     util::SubscriberInitExt,
@@ -32,27 +42,11 @@ use tracing_subscriber::{
 /// Initialize the TUI and start the main loop
 fn main() {
     initialize_tracing();
-    let config = Config::load().unwrap();
+    let config = Config::load();
 
-    // Restore terminal on exit
-    let original_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(move |panic_info| {
-        ratatui::restore();
-        original_hook(panic_info);
-    }));
-
-    let terminal = ratatui::init_with_options(TerminalOptions {
-        // Lock the terminal to the Pi's dimensions
-        viewport: Viewport::Fixed(DIMENSIONS.into()),
-    });
-    crossterm::execute!(
-        io::stdout(),
-        EnterAlternateScreen,
-        EnableMouseCapture,
-    ).unwrap();
+    let terminal = initialize_terminal();
     run(config, terminal);
-
-    ratatui::restore();
+    restore_terminal();
 }
 
 /// TODO explain architecture
@@ -117,6 +111,33 @@ fn initialize_tracing() {
         .with_span_events(FmtSpan::NONE)
         .with_filter(targets);
     tracing_subscriber::registry().with(file_subscriber).init()
+}
+
+fn initialize_terminal() -> Terminal<CrosstermBackend<Stdout>> {
+    info!("Initializing terminal");
+    // Restore terminal on exit
+    let original_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |panic_info| {
+        restore_terminal();
+        original_hook(panic_info);
+    }));
+
+    let terminal = ratatui::init_with_options(TerminalOptions {
+        // Lock the terminal to the Pi's dimensions
+        viewport: Viewport::Fixed(DIMENSIONS.into()),
+    });
+    crossterm::execute!(
+        io::stdout(),
+        EnterAlternateScreen,
+        EnableMouseCapture,
+    ).unwrap();
+    terminal
+}
+
+/// Set the terminal like we found it
+fn restore_terminal() {
+    info!("Restoring terminal");
+    ratatui::restore();
 }
 
 /// Handle user input and build the corresponding message. Return `None` if

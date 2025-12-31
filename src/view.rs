@@ -1,21 +1,26 @@
 use crate::{
-    State, state::Mode, transit::TransitPredictions, weather::WeatherForecast,
+    State,
+    state::Mode,
+    transit::{LinePredictions, StopPredictions, TransitPredictions},
+    weather::WeatherForecast,
 };
 use ratatui::{
     Frame,
     buffer::Buffer,
     layout::{Constraint, Layout, Rect, Size},
-    style::{Color, Stylize},
+    style::{Color, Modifier, Style, Stylize},
     text::{Line, Text},
     widgets::{Block, Tabs, Widget},
 };
-use std::iter;
+use std::{iter, sync::LazyLock};
 
 /// Display width
 pub const DIMENSIONS: Size = Size {
     width: 32,
     height: 16,
 };
+/// Styles are statically defined, so we only need one copy
+static STYLES: LazyLock<Styles> = LazyLock::new(Styles::default);
 
 /// Draw to the terminal
 pub fn draw(frame: &mut Frame, state: &State) {
@@ -40,21 +45,21 @@ pub fn draw(frame: &mut Frame, state: &State) {
 
 impl Widget for &TransitPredictions {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let text: Text = self
-            .lines
-            .iter()
-            .flat_map(|line| {
-                // For each line, draw the line name, then its stops
-                iter::once(Line::from(line.name.as_str())).chain(
-                    line.stops.iter().map(|stop| {
-                        Line::from(format!(
-                            "{:>7} {}",
-                            stop.name, stop.predictions
-                        ))
-                    }),
-                )
-            })
-            .collect();
+        fn line_to_lines(
+            line: &LinePredictions,
+        ) -> impl Iterator<Item = Line<'_>> {
+            // One row for the line label, then another row for each stop
+            iter::once(
+                Line::from(line.name.as_str()).style(STYLES.transit_line_name),
+            )
+            .chain(line.stops.iter().map(stop_to_line))
+        }
+
+        fn stop_to_line(stop: &StopPredictions) -> Line<'_> {
+            Line::from(format!("{:>7} {}", stop.name, stop.predictions))
+        }
+
+        let text: Text = self.lines.iter().flat_map(line_to_lines).collect();
         text.render(area, buf);
     }
 }
@@ -96,4 +101,17 @@ impl Widget for &WeatherForecast {
 /// Get the index of a valid within a slice
 fn index_of<T: PartialEq>(list: &[T], value: T) -> Option<usize> {
     list.iter().position(|v| *v == value)
+}
+
+/// All styling rules
+struct Styles {
+    transit_line_name: Style,
+}
+
+impl Default for Styles {
+    fn default() -> Self {
+        Self {
+            transit_line_name: Style::default().add_modifier(Modifier::BOLD),
+        }
+    }
 }

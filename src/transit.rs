@@ -17,7 +17,7 @@ use tracing::error;
 /// Time between requests
 const DATA_TTL: Duration = Duration::from_secs(30);
 /// Max number of pending departures to show for a stop
-const MAX_PREDICTIONS: usize = 2;
+const MAX_PREDICTIONS: usize = 3;
 
 /// Fetch transit data in a loop. When we get new predictions, send a message to
 /// update state
@@ -135,6 +135,7 @@ pub struct StopPredictions {
     pub predictions: CountdownList,
 }
 
+/// List of upcoming arrivals for a stop
 #[derive(Debug)]
 pub struct CountdownList(Vec<Countdown>);
 
@@ -159,7 +160,7 @@ impl Display for CountdownList {
         if self.0.is_empty() {
             write!(f, "None")
         } else {
-            write!(f, "{}m", self.0.iter().format(","))
+            write!(f, "{}", self.0.iter().format(", "))
         }
     }
 }
@@ -170,7 +171,7 @@ pub struct Countdown(i64);
 
 impl Display for Countdown {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}m", self.0)
     }
 }
 
