@@ -49,7 +49,7 @@ fn main() {
     restore_terminal();
 }
 
-/// TODO explain architecture
+/// Start the main program loop
 fn run(config: Config, mut terminal: DefaultTerminal) {
     let mut state = State::default();
 
@@ -57,6 +57,11 @@ fn run(config: Config, mut terminal: DefaultTerminal) {
     let tx = Tx::new(tx);
 
     // Spawn background tasks
+    spawn(&config, &tx, move |_, tx| {
+        // Listen for signals. The termination feature is enabled so this
+        // catches SIGTERM and SIGHUP as well
+        ctrlc::set_handler(move || tx.send(Message::Quit)).unwrap();
+    });
     spawn(&config, &tx, move |_, tx| {
         // Input handler
         loop {

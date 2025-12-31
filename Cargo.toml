@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 chrono = { version = "0.4.31", default-features = false, features = ["clock", "serde"] }
+ctrlc = { version = "3.5.1", features = ["termination"] }
 itertools = { version = "0.14.0", default-features = false }
 ratatui = { version = "0.30.0", default-features = false, features = ["crossterm"] }
 serde = { version = "1.0.228", features = ["derive"] }
