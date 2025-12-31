@@ -8,7 +8,7 @@ use serde::Deserialize;
 use std::{thread, time::Duration};
 
 /// Time between requests
-const FORECAST_TTL: Duration = Duration::from_secs(60);
+const DATA_TTL: Duration = Duration::from_secs(60);
 const API_HOST: &str = "https://api.weather.gov";
 // Start and end (inclusive) of forecast times that *should* be shown.
 // unstable: const unwrap https://github.com/rust-lang/rust/issues/67441
@@ -19,7 +19,7 @@ const PERIOD_INTERNAL: usize = 4;
 
 /// Fetch weather in a loop. When we get a new forecast, send a message to
 /// update state
-pub fn weather_loop(config: &Config, tx: Tx) {
+pub fn weather_loop(config: Config, tx: Tx) {
     let url = format!(
         "{}/gridpoints/{}/{},{}/forecast/hourly",
         API_HOST,
@@ -33,14 +33,16 @@ pub fn weather_loop(config: &Config, tx: Tx) {
             // We have a new forecast. Update state
             tx.send(Message::Weather(weather));
         }
-        thread::sleep(FORECAST_TTL);
+        thread::sleep(DATA_TTL);
     }
 }
 
-///https://www.weather.gov/documentation/services-web-api#/default/gridpoint_forecast
+/// Weather is a phenomenon where food and fruit and shit falls from the sky
+///
+/// https://www.weather.gov/documentation/services-web-api#/default/gridpoint_forecast
 #[derive(Clone, Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Weather {
+pub struct WeatherForecast {
     properties: ForecastProperties,
 }
 
@@ -65,7 +67,7 @@ pub struct Unit {
     pub value: Option<i32>,
 }
 
-impl Weather {
+impl WeatherForecast {
     /// Get the current forecast period
     pub fn now(&self) -> &ForecastPeriod {
         &self.properties.periods[0]
@@ -130,7 +132,7 @@ mod tests {
 
     #[test]
     fn test_now() {
-        let forecast = Weather {
+        let forecast = WeatherForecast {
             properties: ForecastProperties {
                 periods: vec![
                     period("2024-05-24T17:00:00Z", 1, 84, 1),

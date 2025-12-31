@@ -1,3 +1,4 @@
+use crate::transit::TransitLine;
 use anyhow::Context;
 use serde::Deserialize;
 use std::fs::File;
@@ -8,8 +9,8 @@ use tracing::info;
 pub struct Config {
     pub forecast_office: String,
     pub forecast_gridpoint: (u32, u32),
-    // TODO
-    // pub transit_lines: Vec<TransitLine>,
+    /// Transit lines/stops to be displayed
+    pub transit_lines: Vec<TransitLine>,
 }
 
 impl Config {

@@ -1,12 +1,13 @@
 mod config;
 mod state;
+mod transit;
 mod util;
 mod view;
 mod weather;
 
 use crate::{
     config::Config,
-    state::{Message, State},
+    state::{Message, State, Tx},
     util::spawn,
 };
 use ratatui::{
@@ -18,12 +19,7 @@ use ratatui::{
     },
     layout::Rect,
 };
-use std::{
-    io,
-    sync::mpsc,
-    thread,
-    time::{Duration, Instant},
-};
+use std::{io, sync::mpsc};
 
 const WIDTH: u16 = 32;
 const HEIGHT: u16 = 16;
@@ -63,31 +59,33 @@ fn run(config: Config, mut terminal: DefaultTerminal) {
     let mut state = State::default();
 
     let (tx, rx) = mpsc::channel();
+    let tx = Tx::new(tx);
 
     // Spawn background tasks
     spawn(&config, &tx, move |_, tx| {
-        loop {
-            thread::sleep(Duration::from_millis(100));
-            tx.send(Message::Time(Instant::now()))?;
-        }
-    });
-    spawn(&config, &tx, move |_, tx| {
         // Input handler
         loop {
-            let event = event::read()?;
-            if let Some(message) = input_message(event) {
-                tx.send(message)?;
+            match event::read() {
+                Ok(event) => {
+                    if let Some(message) = input_message(event) {
+                        tx.send(message);
+                    }
+                }
+                // Input closed - exit
+                Err(_) => tx.send(Message::Quit),
             }
         }
     });
+    spawn(&config, &tx, transit::transit_loop);
+    spawn(&config, &tx, weather::weather_loop);
 
     loop {
         terminal.draw(|frame| view::draw(frame, &state)).unwrap();
         // Block until we get a message
         match rx.recv().unwrap() {
+            Message::Mode(mode) => state.mode = mode,
             Message::Quit => break,
-            Message::SetMode(mode) => state.mode = mode,
-            Message::Time(time) => state.now = time,
+            Message::Transit(transit) => state.transit = transit,
             Message::Weather(weather) => state.weather = weather,
         }
     }

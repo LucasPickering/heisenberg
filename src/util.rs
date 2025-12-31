@@ -7,15 +7,11 @@ use tracing::error;
 pub fn spawn(
     config: &Config,
     tx: &Tx,
-    f: impl 'static + FnOnce(Config, Tx) -> anyhow::Result<()> + Send,
+    f: impl 'static + FnOnce(Config, Tx) + Send,
 ) {
     let config = config.clone();
     let tx = tx.clone();
-    thread::spawn(move || {
-        if let Err(error) = f(config, tx) {
-            error!(%error, "Error in background task");
-        }
-    });
+    thread::spawn(move || f(config, tx));
 }
 
 /// Make an HTTP GET request
