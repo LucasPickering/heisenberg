@@ -3,9 +3,11 @@ use crate::{
 };
 use ratatui::{
     Frame,
+    buffer::Buffer,
     layout::{Constraint, Layout, Rect, Size},
     style::{Color, Stylize},
-    widgets::{Block, Tabs},
+    text::{Line, Text},
+    widgets::{Block, Tabs, Widget},
 };
 use std::iter;
 
@@ -31,47 +33,63 @@ pub fn draw(frame: &mut Frame, state: &State) {
     );
 
     match state.mode {
-        Mode::Transit => draw_transit(frame, &state.transit, content_area),
-        Mode::Weather => draw_weather(frame, &state.weather, content_area),
+        Mode::Transit => frame.render_widget(&state.transit, content_area),
+        Mode::Weather => frame.render_widget(&state.weather, content_area),
     }
 }
 
-fn draw_transit(frame: &mut Frame, transit: &TransitPredictions, area: Rect) {
-    for line in &transit.lines {
-        frame.render_widget(
-            format!("{}\n{}\n{}\n", line.name, line.inbound, line.outbound),
-            area,
-        );
+impl Widget for &TransitPredictions {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let text: Text = self
+            .lines
+            .iter()
+            .flat_map(|line| {
+                // For each line, draw the line name, then its stops
+                iter::once(Line::from(line.name.as_str())).chain(
+                    line.stops.iter().map(|stop| {
+                        Line::from(format!(
+                            "{:>7} {}",
+                            stop.name, stop.predictions
+                        ))
+                    }),
+                )
+            })
+            .collect();
+        text.render(area, buf);
     }
 }
 
-fn draw_weather(frame: &mut Frame, weather: &WeatherForecast, area: Rect) {
-    let [now_area, areas @ ..] =
-        Layout::vertical(iter::repeat_n(Constraint::Length(1), 5))
-            .areas::<5>(area);
+impl Widget for &WeatherForecast {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let [now_area, areas @ ..] =
+            Layout::vertical(iter::repeat_n(Constraint::Length(1), 5))
+                .areas::<5>(area);
 
-    // Draw current weather
-    let Some(now) = weather.now() else {
-        frame.render_widget("No weather data available", now_area);
-        return;
-    };
-    frame.render_widget(
-        format!("{} {}", now.temperature(), now.prob_of_precip()),
-        now_area,
-    );
-
-    // Draw upcoming periods
-    for (period, area) in weather.future_periods().take(areas.len()).zip(areas)
-    {
-        frame.render_widget(
-            format!(
-                "{} {:>4} {:>4}",
-                period.start_time().format("%_I%P"),
-                period.temperature(),
-                period.prob_of_precip(),
-            ),
-            area,
+        // Draw current weather
+        let Some(now) = self.now() else {
+            Widget::render("No weather data available", now_area, buf);
+            return;
+        };
+        Widget::render(
+            format!("{} {}", now.temperature(), now.prob_of_precip()),
+            now_area,
+            buf,
         );
+
+        // Draw upcoming periods
+        for (period, area) in self.future_periods().take(areas.len()).zip(areas)
+        {
+            Widget::render(
+                format!(
+                    "{} {:>4} {:>4}",
+                    period.start_time().format("%_I%P"),
+                    period.temperature(),
+                    period.prob_of_precip(),
+                ),
+                area,
+                buf,
+            );
+        }
     }
 }
 
