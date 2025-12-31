@@ -18,3 +18,7 @@ run = """rsync -r -vv \
 depends = ["copy"]
 description = "Run on the Pi"
 run = "ssh {{env.PI_HOST}} \"pkill -f xterm\""
+
+[tasks.dev]
+description = "Run locally"
+run = "./dev.sh"
