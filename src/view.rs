@@ -33,7 +33,8 @@ pub fn draw(frame: &mut Frame, state: &State) {
 
     frame.render_widget(
         Tabs::new(Mode::ALL.iter().map(Mode::to_string))
-            .select(index_of(&Mode::ALL, state.mode)),
+            .select(index_of(&Mode::ALL, state.mode))
+            .highlight_style(STYLES.tab_highlight),
         mode_area,
     );
 
@@ -105,12 +106,17 @@ fn index_of<T: PartialEq>(list: &[T], value: T) -> Option<usize> {
 
 /// All styling rules
 struct Styles {
+    tab_highlight: Style,
     transit_line_name: Style,
 }
 
 impl Default for Styles {
     fn default() -> Self {
         Self {
+            tab_highlight: Style::default()
+                .fg(Color::White)
+                .bg(Color::Black)
+                .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
             transit_line_name: Style::default().add_modifier(Modifier::BOLD),
         }
     }
