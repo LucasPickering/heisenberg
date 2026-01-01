@@ -19,7 +19,7 @@ pub fn http_get<T: DeserializeOwned>(url: &str) -> Result<T, ()> {
     info!("Fetching {url}");
     match ureq::get(url).call() {
         Ok(mut response) if response.status().is_success() => {
-            let data: T = response.body_mut().read_json().expect("TODO");
+            let data: T = response.body_mut().read_json().unwrap();
             Ok(data)
         }
         Ok(response) => {

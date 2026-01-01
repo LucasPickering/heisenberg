@@ -40,7 +40,6 @@ pub fn transit_loop(config: Config, tx: Tx) {
             );
             tx.send(Message::Transit(predictions));
         }
-        // TODO shorter TTL for error?
         thread::sleep(DATA_TTL);
     }
 }

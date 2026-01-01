@@ -1,4 +1,9 @@
-//! TODO describe architecture
+//! A TUI program to be displayed on a Raspberry Pi touchscreen. This uses an
+//! ELM-like architecture:
+//! - The main thread monitors a message mpsc queue
+//! - Background threads are spawned to monitor external state
+//! - To modify state, the background threads send messages to the main thread
+//! - Whenever state is changed, redraw the terminal
 //!
 //! This is a panic-first type program. Most errors are fatal. Anyhow has no
 //! power here!!

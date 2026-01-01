@@ -22,7 +22,7 @@ impl Default for State {
     }
 }
 
-/// TODO
+/// A message is sent from background threads to the main thread to modify state
 pub enum Message {
     /// Switch to the next tab in the list
     NextMode,
@@ -48,7 +48,7 @@ impl Tx {
         // Send only fails if the receiver has been dropped. The main thread
         // always keeps it open, so if this fails the main thread is done. We
         // can just kill the thread
-        self.0.send(message).expect("TODO");
+        self.0.send(message).expect("Message receiver closed");
     }
 }
 
