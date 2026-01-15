@@ -11,9 +11,12 @@ run = "cargo build --release --target {{env.PI_TARGET}}"
 [tasks.copy]
 depends = ["build"]
 description = "Copy build files to the Pi"
-run = """rsync -r -vv \
-    heisenberg.service config.json target/{{env.PI_TARGET}}/release/heisenberg \
-    {{env.PI_HOST}}:{{env.PI_DIR}}"""
+run = [
+    """rsync -r -vv deploy/ {{env.PI_HOST}}:""",
+    """rsync -r -vv \
+    config.json target/{{env.PI_TARGET}}/release/heisenberg \
+    {{env.PI_HOST}}:{{env.PI_DIR}}""",
+]
 
 [tasks.deploy]
 depends = ["copy"]

@@ -1,0 +1,5 @@
+xterm*maximized: true
+xterm*background: black
+xterm*foreground: white
+xterm*faceName: Monospace
+xterm*faceSize: 28
