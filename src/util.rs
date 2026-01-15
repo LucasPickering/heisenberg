@@ -35,3 +35,10 @@ pub fn http_get<T: DeserializeOwned>(url: &str) -> Result<T, ()> {
         }
     }
 }
+
+/// TODO
+pub fn scale_to(value: f64, from: (f64, f64), to: (f64, f64)) -> f64 {
+    let from_span = from.1 - from.0;
+    let to_span = to.1 - to.0;
+    (value - (from.0)) / from_span * to_span + to.0
+}

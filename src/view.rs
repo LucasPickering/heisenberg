@@ -2,22 +2,25 @@ use crate::{
     State,
     state::Mode,
     transit::{LinePredictions, StopPredictions, TransitPredictions},
-    weather::{ForecastPeriod, WeatherForecast},
+    util::scale_to,
+    weather::WeatherForecast,
 };
+use itertools::{Itertools, MinMaxResult};
 use ratatui::{
     Frame,
     buffer::Buffer,
-    layout::{Constraint, Layout, Rect, Size},
+    layout::{Alignment, Constraint, Layout, Rect, Size},
     style::{Color, Modifier, Style},
-    text::{Line, Span, Text},
-    widgets::{Tabs, Widget},
+    symbols,
+    text::{Line, Text},
+    widgets::{Axis, Chart, Dataset, GraphType, Tabs, Widget},
 };
 use std::{iter, sync::LazyLock};
 
 /// Display width
 pub const DIMENSIONS: Size = Size {
-    width: 18,
-    height: 10,
+    width: 24,
+    height: 12,
 };
 /// Styles are statically defined, so we only need one copy
 static STYLES: LazyLock<Styles> = LazyLock::new(Styles::default);
@@ -69,41 +72,85 @@ impl Widget for &TransitPredictions {
 
 impl Widget for &WeatherForecast {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        /// Convert a forecast period into a line of text
-        fn period_to_line(
-            name: &str,
-            period: &ForecastPeriod,
-        ) -> Line<'static> {
-            Line::from_iter([
-                Span::styled(format!("{name:>4}"), STYLES.weather_period),
-                Span::from(format!("{:>4}", period.temperature())),
-                Span::from(format!("{:>4}", period.prob_of_precip(),)),
-            ])
-        }
+        const PERIODS: usize = 25;
 
-        let [now_area, areas @ ..] =
-            Layout::vertical(iter::repeat_n(Constraint::Length(1), 5))
-                .areas::<5>(area);
+        let (labels, temps, precips): (Vec<_>, Vec<_>, Vec<_>) = self
+            .periods()
+            .take(PERIODS)
+            .map(|period| {
+                let time = period.start_time();
+                let x = period.start_time().timestamp() as f64;
+                let label = {
+                    let mut label = time.format("%-I%P").to_string();
+                    label.pop(); // Remove the 'm' from 'am'/'pm'
+                    label
+                };
+                let temp = (x, period.temp() as f64);
+                let precip = (x, period.pop() as f64);
+                (label, temp, precip)
+            })
+            .multiunzip();
 
-        // Draw current weather
-        let Some(now) = self.now() else {
-            Widget::render("No weather data available", now_area, buf);
-            return;
+        // Calculate x/y bounds based on the temperature data. Both lines will
+        // have the same x values. Bound the y based on temperature, so it zooms
+        // in as much as possible. The precip line will still be 0-100, but
+        // without labels
+        let (min_x, max_x, min_temp, max_temp) = if temps.is_empty() {
+            (0.0, 0.0, 0.0, 0.0)
+        } else {
+            let min_x = temps.first().unwrap().0;
+            let max_x = temps.last().unwrap().0;
+            let (min_temp, max_temp) =
+                match temps.iter().map(|(_, temp)| *temp).minmax() {
+                    MinMaxResult::NoElements => (0.0, 0.0),
+                    MinMaxResult::OneElement(value) => (value, value),
+                    MinMaxResult::MinMax(min, max) => (min, max),
+                };
+            (min_x, max_x, min_temp, max_temp)
         };
-        Widget::render(period_to_line("Now", now), now_area, buf);
 
-        // Draw upcoming periods
-        for (period, area) in self.future_periods().take(areas.len()).zip(areas)
-        {
-            Widget::render(
-                period_to_line(
-                    &period.start_time().format("%_I%P").to_string(),
-                    period,
-                ),
-                area,
-                buf,
-            );
-        }
+        // Scale the precip values to be in the temperature y range. This will
+        // make the dots visually equivalent to being on their own 0-100 scale
+        let precips: Vec<_> = precips
+            .into_iter()
+            .map(|(x, y)| {
+                let y = scale_to(y, (0., 100.), (min_temp, max_temp));
+                (x, y)
+            })
+            .collect();
+
+        // Build the lines from temp/precip data
+        let datasets = vec![
+            Dataset::default()
+                .name("precip")
+                .marker(symbols::Marker::Braille)
+                .graph_type(GraphType::Line)
+                .style(STYLES.weather_line_precipitation)
+                .data(&precips),
+            Dataset::default()
+                .name("temp")
+                .marker(symbols::Marker::Braille)
+                .graph_type(GraphType::Line)
+                .style(STYLES.weather_line_temperature)
+                .data(&temps),
+        ];
+
+        // Build the axes
+        let x_axis = Axis::default()
+            .style(Style::default().white())
+            .bounds([min_x, max_x])
+            // 4 evenly spaced labels
+            .labels(labels.into_iter().step_by(PERIODS / 3));
+        let y_axis = Axis::default()
+            .style(Style::default().white())
+            .bounds([min_temp, max_temp])
+            .labels([format!("{min_temp:.0}°"), format!("{max_temp:.0}°")])
+            .labels_alignment(Alignment::Right);
+
+        // Create the chart and link all the parts together
+        let chart = Chart::new(datasets).x_axis(x_axis).y_axis(y_axis);
+
+        chart.render(area, buf);
     }
 }
 
@@ -118,8 +165,10 @@ struct Styles {
     tab_highlight: Style,
     /// Transit line names (e.g. "86")
     transit_line_name: Style,
-    /// Weather period name (e.g. "5pm")
-    weather_period: Style,
+    /// Precipitation line on the weather graph
+    weather_line_precipitation: Style,
+    /// Temperature line on the weather graph
+    weather_line_temperature: Style,
 }
 
 impl Default for Styles {
@@ -130,7 +179,8 @@ impl Default for Styles {
                 .bg(Color::Black)
                 .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
             transit_line_name: Style::default().add_modifier(Modifier::BOLD),
-            weather_period: Style::default().add_modifier(Modifier::BOLD),
+            weather_line_precipitation: Style::default().blue(),
+            weather_line_temperature: Style::default().red(),
         }
     }
 }

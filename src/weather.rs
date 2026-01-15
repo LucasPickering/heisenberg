@@ -3,19 +3,13 @@ use crate::{
     state::{Message, Tx},
     util::http_get,
 };
-use chrono::{DateTime, Local, NaiveTime, Utc};
+use chrono::{DateTime, Local, Utc};
 use serde::Deserialize;
 use std::{thread, time::Duration};
 
 /// Time between requests
 const DATA_TTL: Duration = Duration::from_secs(60);
 const API_HOST: &str = "https://api.weather.gov";
-// Start and end (inclusive) of forecast times that *should* be shown.
-// unstable: const unwrap https://github.com/rust-lang/rust/issues/67441
-const DAY_START: NaiveTime = NaiveTime::from_hms_opt(4, 30, 0).unwrap();
-const DAY_END: NaiveTime = NaiveTime::from_hms_opt(22, 30, 0).unwrap();
-/// We show every n periods in the future
-const PERIOD_INTERNAL: usize = 4;
 
 /// Fetch weather in a loop. When we get a new forecast, send a message to
 /// update state
@@ -68,23 +62,9 @@ pub struct Unit {
 }
 
 impl WeatherForecast {
-    /// Get the current forecast period
-    pub fn now(&self) -> Option<&ForecastPeriod> {
-        self.properties.periods.first()
-    }
-
-    /// Get the list of periods that should be shown in the list. This skips
-    /// periods in the middle of the night.
-    pub fn future_periods(&self) -> impl '_ + Iterator<Item = &ForecastPeriod> {
-        let day_range = DAY_START..=DAY_END;
-        self.properties
-            .periods
-            .iter()
-            .skip(1)
-            .step_by(PERIOD_INTERNAL)
-            .filter(move |period| {
-                day_range.contains(&period.start_time().time())
-            })
+    /// Get all periods in the forecast
+    pub fn periods(&self) -> impl '_ + Iterator<Item = &ForecastPeriod> {
+        self.properties.periods.iter()
     }
 }
 
@@ -92,6 +72,16 @@ impl ForecastPeriod {
     /// Localized timestamp for the start of this period
     pub fn start_time(&self) -> DateTime<Local> {
         self.start_time.with_timezone(&Local)
+    }
+
+    /// TODO
+    pub fn temp(&self) -> i32 {
+        self.temperature
+    }
+
+    /// TODO
+    pub fn pop(&self) -> i32 {
+        self.probability_of_precipitation.value.unwrap_or_default()
     }
 
     /// Formatted temperature
@@ -105,46 +95,5 @@ impl ForecastPeriod {
             "{:.0}%",
             self.probability_of_precipitation.value.unwrap_or_default()
         )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn period(
-        time: &str,
-        hours: i64,
-        temperature: i32,
-        probability_of_precipitation: i32,
-    ) -> ForecastPeriod {
-        let start_time = time.parse().unwrap();
-        let end_time = start_time + chrono::Duration::hours(hours);
-        ForecastPeriod {
-            start_time,
-            end_time,
-            temperature,
-            probability_of_precipitation: Unit {
-                value: Some(probability_of_precipitation),
-            },
-        }
-    }
-
-    #[test]
-    fn test_now() {
-        let forecast = WeatherForecast {
-            properties: ForecastProperties {
-                periods: vec![
-                    period("2024-05-24T17:00:00Z", 1, 84, 1),
-                    period("2024-05-24T18:00:00Z", 1, 85, 0),
-                    period("2024-05-24T19:00:00Z", 1, 86, 0),
-                ],
-            },
-        };
-
-        assert_eq!(
-            forecast.now().unwrap(),
-            &period("2024-05-24T17:00:00Z", 1, 84, 1)
-        );
     }
 }
