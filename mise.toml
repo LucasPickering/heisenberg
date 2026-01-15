@@ -2,10 +2,12 @@
 PI_DIR = "/home/pi/heisenberg"
 PI_HOST = "pi@192.168.0.23"
 PI_TARGET = "armv7-unknown-linux-musleabihf"
+BINARY_PATH = "target/{{env.PI_TARGET}}/release/heisenberg"
 
 [tasks.build]
 description = "Build for the Pi"
-sources = ["Cargo.toml", "Cargo.lock", "src/"]
+sources = ["Cargo.toml", "Cargo.lock", "src/**/*.rs"]
+outputs = ["{{env.BINARY_PATH}}"]
 run = "cargo build --release --target {{env.PI_TARGET}}"
 
 [tasks.copy]
@@ -14,8 +16,7 @@ description = "Copy build files to the Pi"
 run = [
     """rsync -r -vv deploy/ {{env.PI_HOST}}:""",
     """rsync -r -vv \
-    config.json target/{{env.PI_TARGET}}/release/heisenberg \
-    {{env.PI_HOST}}:{{env.PI_DIR}}""",
+    config.json {{env.BINARY_PATH}} {{env.PI_HOST}}:{{env.PI_DIR}}""",
 ]
 
 [tasks.deploy]
