@@ -10,6 +10,7 @@ run = "cargo build --release --target {{env.PI_TARGET}}"
 
 [tasks.copy]
 depends = ["build"]
+description = "Copy build files to the Pi"
 run = """rsync -r -vv \
     heisenberg.service config.json target/{{env.PI_TARGET}}/release/heisenberg \
     {{env.PI_HOST}}:{{env.PI_DIR}}"""
@@ -21,4 +22,6 @@ run = "ssh {{env.PI_HOST}} \"pkill -f xterm\""
 
 [tasks.dev]
 description = "Run locally"
-run = "./dev.sh"
+run = """watchexec --restart --no-process-group \
+    --watch Cargo.toml --watch Cargo.lock --watch src/ \
+    -- cargo run"""
