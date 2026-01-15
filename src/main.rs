@@ -26,10 +26,10 @@ use ratatui::{
     crossterm::{
         self,
         event::{
-            self, EnableMouseCapture, Event, KeyCode, KeyEvent, MouseButton,
-            MouseEvent, MouseEventKind,
+            self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode,
+            KeyEvent, MouseButton, MouseEvent, MouseEventKind,
         },
-        terminal::EnterAlternateScreen,
+        terminal::{EnterAlternateScreen, LeaveAlternateScreen},
     },
     prelude::CrosstermBackend,
 };
@@ -147,7 +147,11 @@ fn initialize_terminal() -> Terminal<CrosstermBackend<Stdout>> {
 /// Set the terminal like we found it
 fn restore_terminal() {
     info!("Restoring terminal");
-    ratatui::restore();
+    let _ = crossterm::execute!(
+        io::stdout(),
+        LeaveAlternateScreen,
+        DisableMouseCapture,
+    );
 }
 
 /// Handle user input and build the corresponding message. Return `None` if
