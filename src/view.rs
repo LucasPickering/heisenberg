@@ -8,25 +8,22 @@ use ratatui::{
     Frame,
     buffer::Buffer,
     layout::{Constraint, Layout, Rect, Size},
-    style::{Color, Modifier, Style, Stylize},
+    style::{Color, Modifier, Style},
     text::{Line, Text},
-    widgets::{Block, Tabs, Widget},
+    widgets::{Tabs, Widget},
 };
 use std::{iter, sync::LazyLock};
 
 /// Display width
 pub const DIMENSIONS: Size = Size {
-    width: 32,
-    height: 16,
+    width: 18,
+    height: 10,
 };
 /// Styles are statically defined, so we only need one copy
 static STYLES: LazyLock<Styles> = LazyLock::new(Styles::default);
 
 /// Draw to the terminal
 pub fn draw(frame: &mut Frame, state: &State) {
-    // Draw background color. Makes it easier to visualize the size in dev mode
-    frame.render_widget(Block::new().bg(Color::DarkGray), frame.area());
-
     let [mode_area, content_area] =
         Layout::vertical([Constraint::Length(1), Constraint::Min(0)])
             .areas(frame.area());
