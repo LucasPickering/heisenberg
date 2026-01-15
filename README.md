@@ -9,3 +9,11 @@ Raspberry Pi OS Lite (TODO get version)
 - startx in .bash_profile
 - start xterm w/ heisenberg in .xinitrc
 - configure xterm: .Xresources
+
+## Development
+
+```sh
+mise dev # Run locally
+mise deploy # Deploy to RPi
+mise watch -- deploy # Deploy and watch files
+```

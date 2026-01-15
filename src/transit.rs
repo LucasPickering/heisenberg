@@ -17,7 +17,7 @@ use tracing::error;
 /// Time between requests
 const DATA_TTL: Duration = Duration::from_secs(30);
 /// Max number of pending departures to show for a stop
-const MAX_PREDICTIONS: usize = 3;
+const MAX_PREDICTIONS: usize = 2;
 
 /// Fetch transit data in a loop. When we get new predictions, send a message to
 /// update state
