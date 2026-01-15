@@ -2,4 +2,4 @@ xterm*fullscreen: true
 xterm*background: black
 xterm*foreground: white
 xterm*faceName: Monospace
-xterm*faceSize: 48
+xterm*faceSize: 36

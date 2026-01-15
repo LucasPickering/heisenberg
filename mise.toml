@@ -3,6 +3,7 @@ PI_DIR = "/home/pi/heisenberg"
 PI_HOST = "pi@192.168.0.23"
 PI_TARGET = "armv7-unknown-linux-musleabihf"
 BINARY_PATH = "target/{{env.PI_TARGET}}/release/heisenberg"
+RUST_BACKTRACE = 1
 
 [tasks.build]
 description = "Build for the Pi"
