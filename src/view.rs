@@ -5,6 +5,7 @@ use crate::{
     util::scale_to,
     weather::WeatherForecast,
 };
+use chrono::Local;
 use itertools::{Itertools, MinMaxResult};
 use ratatui::{
     Frame,
@@ -12,7 +13,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Layout, Rect, Size},
     style::{Color, Modifier, Style},
     symbols,
-    text::{Line, Text},
+    text::{Line, Text, ToSpan},
     widgets::{Axis, Chart, Dataset, GraphType, Tabs, Widget},
 };
 use std::{iter, sync::LazyLock};
@@ -27,23 +28,32 @@ static STYLES: LazyLock<Styles> = LazyLock::new(Styles::default);
 
 /// Draw to the terminal
 pub fn draw(frame: &mut Frame, state: &State) {
-    let [mode_area, _, content_area] = Layout::vertical([
+    let [header_area, _, main_area] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Min(0),
     ])
     .areas(frame.area());
+    let [mode_area, clock_area] =
+        Layout::horizontal([Constraint::Min(0), Constraint::Length(5)])
+            .areas(header_area);
 
+    // Tab header
     frame.render_widget(
         Tabs::new(Mode::ALL.iter().map(Mode::to_string))
             .select(index_of(&Mode::ALL, state.mode))
             .highlight_style(STYLES.tab_highlight),
         mode_area,
     );
+    // Clock
+    frame.render_widget(
+        Local::now().format("%l:%M").to_span().style(STYLES.clock),
+        clock_area,
+    );
 
     match state.mode {
-        Mode::Transit => frame.render_widget(&state.transit, content_area),
-        Mode::Weather => frame.render_widget(&state.weather, content_area),
+        Mode::Transit => frame.render_widget(&state.transit, main_area),
+        Mode::Weather => frame.render_widget(&state.weather, main_area),
     }
 }
 
@@ -164,6 +174,8 @@ fn index_of<T: PartialEq>(list: &[T], value: T) -> Option<usize> {
 
 /// All styling rules
 struct Styles {
+    /// Clock in the top-right
+    clock: Style,
     /// Highlighted tab name
     tab_highlight: Style,
     /// Transit line names (e.g. "86")
@@ -177,6 +189,7 @@ struct Styles {
 impl Default for Styles {
     fn default() -> Self {
         Self {
+            clock: Style::default().add_modifier(Modifier::BOLD),
             tab_highlight: Style::default()
                 .fg(Color::Cyan)
                 .bg(Color::Black)
