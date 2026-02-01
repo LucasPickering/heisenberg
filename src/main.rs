@@ -132,21 +132,26 @@ fn initialize_terminal() -> Terminal<CrosstermBackend<Stdout>> {
         original_hook(panic_info);
     }));
 
-    let terminal = ratatui::init_with_options(TerminalOptions {
-        // Lock the terminal to the Pi's dimensions
-        viewport: Viewport::Fixed(DIMENSIONS.into()),
-    });
+    crossterm::terminal::enable_raw_mode().unwrap();
     crossterm::execute!(
         io::stdout(),
         EnterAlternateScreen,
         EnableMouseCapture,
     ).unwrap();
-    terminal
+    Terminal::with_options(
+        CrosstermBackend::new(io::stdout()),
+        TerminalOptions {
+            // Lock the terminal to the Pi's dimensions
+            viewport: Viewport::Fixed(DIMENSIONS.into()),
+        },
+    )
+    .unwrap()
 }
 
 /// Set the terminal like we found it
 fn restore_terminal() {
     info!("Restoring terminal");
+    let _ = crossterm::terminal::disable_raw_mode();
     let _ = crossterm::execute!(
         io::stdout(),
         LeaveAlternateScreen,
