@@ -1,0 +1,31 @@
+profiles:
+  default:
+    name: null
+    data:
+      weather_host: https://api.weather.gov
+      mbta_host: https://api-v3.mbta.com
+      office: BOX
+      position: 71,90
+requests:
+  mbta:
+    name: null
+    requests:
+      schedule:
+        method: GET
+        url: '{{ mbta_host }}/schedules'
+        query:
+          filter[stop]: '{{ select([''2545'', ''2570'']) }}'
+      prediction:
+        method: GET
+        url: '{{ mbta_host }}/predictions'
+        query:
+          filter[stop]: 2545,2570,2435,2455
+  weather:
+    name: null
+    requests:
+      weather_hourly:
+        method: GET
+        url: '{{ weather_host }}/gridpoints/{{ office }}/{{ position }}/forecast/hourly'
+      weather_12hr:
+        method: GET
+        url: '{{ weather_host }}/gridpoints/{{ office }}/{{ position }}/forecast'

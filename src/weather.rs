@@ -64,7 +64,13 @@ pub struct Unit {
 impl WeatherForecast {
     /// Get all periods in the forecast
     pub fn periods(&self) -> impl '_ + Iterator<Item = &ForecastPeriod> {
-        self.properties.periods.iter()
+        // Sometimes the forecast includes time that's already past. Filter
+        // those out
+        let now = Utc::now();
+        self.properties
+            .periods
+            .iter()
+            .filter(move |period| period.end_time > now)
     }
 }
 
