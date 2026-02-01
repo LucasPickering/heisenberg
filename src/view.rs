@@ -141,10 +141,13 @@ impl Widget for &WeatherForecast {
             .bounds([min_x, max_x])
             // 4 evenly spaced labels
             .labels(labels.into_iter().step_by(PERIODS / 3));
+        let y_labels = [min_temp, min_temp.midpoint(max_temp), max_temp]
+            .into_iter()
+            .map(|temp| format!("{temp:.0}°"));
         let y_axis = Axis::default()
             .style(Style::default().white())
             .bounds([min_temp, max_temp])
-            .labels([format!("{min_temp:.0}°"), format!("{max_temp:.0}°")])
+            .labels(y_labels)
             .labels_alignment(Alignment::Right);
 
         // Create the chart and link all the parts together
