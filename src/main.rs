@@ -17,7 +17,10 @@ use tracing_subscriber::{
     Layer, filter::Targets, fmt::format::FmtSpan, layer::SubscriberExt,
     util::SubscriberInitExt,
 };
-use xilem::{EventLoop, WindowOptions, Xilem, winit::error::EventLoopError};
+use xilem::{
+    EventLoop, WindowOptions, Xilem, dpi::LogicalSize,
+    winit::error::EventLoopError,
+};
 
 fn main() -> Result<(), EventLoopError> {
     // TODO fix verbose logging
@@ -28,7 +31,9 @@ fn main() -> Result<(), EventLoopError> {
     let app = Xilem::new_simple(
         State::default(),
         view::app_logic,
-        WindowOptions::new("Heisenberg"),
+        WindowOptions::new("Heisenberg")
+            .with_resizable(false)
+            .with_initial_inner_size(LogicalSize::new(400, 400)),
     );
     app.run_in(EventLoop::with_user_event())?;
     Ok(())

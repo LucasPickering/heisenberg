@@ -81,25 +81,12 @@ impl ForecastPeriod {
     }
 
     /// TODO
-    pub fn temp(&self) -> i32 {
+    pub fn temperature(&self) -> i32 {
         self.temperature
     }
 
     /// TODO
-    pub fn pop(&self) -> i32 {
+    pub fn prob_of_precip(&self) -> i32 {
         self.probability_of_precipitation.value.unwrap_or_default()
-    }
-
-    /// Formatted temperature
-    pub fn temperature(&self) -> String {
-        format!("{:.0}°", self.temperature)
-    }
-
-    /// Formatted probability of precipitation
-    pub fn prob_of_precip(&self) -> String {
-        format!(
-            "{:.0}%",
-            self.probability_of_precipitation.value.unwrap_or_default()
-        )
     }
 }

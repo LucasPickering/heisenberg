@@ -62,12 +62,6 @@ pub enum Mode {
 impl Mode {
     /// List of all modes
     pub const ALL: [Self; 2] = [Self::Weather, Self::Transit];
-
-    /// Get the next mode in the list
-    pub fn next(self) -> Self {
-        let current = Self::ALL.iter().position(|m| *m == self).unwrap();
-        Self::ALL[(current + 1) % Self::ALL.len()]
-    }
 }
 
 impl Display for Mode {
