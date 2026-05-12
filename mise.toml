@@ -1,7 +1,7 @@
 [env]
 PI_DIR = "/home/pi/heisenberg"
 PI_HOST = "pi@192.168.0.23"
-PI_TARGET = "armv7-unknown-linux-musleabihf"
+PI_TARGET = "armv7-unknown-linux-gnueabihf"
 RUST_BACKTRACE = 1
 
 BINARY_PATH = "target/{{env.PI_TARGET}}/release/heisenberg"
@@ -9,7 +9,7 @@ BINARY_PATH = "target/{{env.PI_TARGET}}/release/heisenberg"
 [tasks.build]
 description = "Build for the Pi"
 outputs = ["{{env.BINARY_PATH}}"]
-run = "cargo build --release --target {{env.PI_TARGET}}"
+run = "cargo zigbuild --release --target {{env.PI_TARGET}}"
 sources = ["Cargo.toml", "Cargo.lock", "src/**/*.rs"]
 
 [tasks.copy]
@@ -31,3 +31,7 @@ description = "Run locally"
 run = """watchexec --restart \
     --watch Cargo.toml --watch Cargo.lock --watch src/ \
     -- cargo run"""
+
+[tools]
+"github:rust-cross/cargo-zigbuild" = "0.22"
+zig = "0.14"
