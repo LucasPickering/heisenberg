@@ -41,6 +41,7 @@ struct Forecast {
 #[derive(Clone, Debug, Serialize)]
 struct ForecastPeriod {
     start_time: DateTime<Local>,
+    end_time: DateTime<Local>,
     /// Temperature in degress Fahrenheit
     temperature: i32,
     /// How likely is precipitation? 0-100
@@ -50,16 +51,13 @@ struct ForecastPeriod {
 impl Forecast {
     /// Reformat the data for easy use in the frontend
     fn from_api(forecast: ApiForecast) -> Self {
-        // Sometimes the forecast includes time that's already past. Filter
-        // those out
-        let now = Utc::now();
         let periods = forecast
             .properties
             .periods
             .into_iter()
-            .filter(move |period| period.end_time > now)
             .map(|period| ForecastPeriod {
                 start_time: period.start_time.with_timezone(&Local),
+                end_time: period.end_time.with_timezone(&Local),
                 temperature: period.temperature,
                 probability_of_precipitation: period
                     .probability_of_precipitation

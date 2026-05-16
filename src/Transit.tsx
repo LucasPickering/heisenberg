@@ -7,21 +7,22 @@ function Transit(
   return (
     <table>
       <tbody>
-      {transit.lines.map((line) => (
-        <>
-          <tr>
-          <th>{line.name}</th></tr>
-
-          {line.stops.map(stop => (
+        {transit.lines.map((line) => (
+          <>
             <tr>
-              <td>{stop.name}</td>
-              <td>
-                {stop.predictions.map(minutes => `${minutes}m`).join(", ")}
-              </td>
+              <th>{line.name}</th>
             </tr>
-          ))}
-        </>
-      ))}
+
+            {line.stops.map(stop => (
+              <tr>
+                <td>{stop.name}</td>
+                <td>
+                  {stop.predictions.map(minutes => `${minutes}m`).join(", ")}
+                </td>
+              </tr>
+            ))}
+          </>
+        ))}
       </tbody>
     </table>
   );

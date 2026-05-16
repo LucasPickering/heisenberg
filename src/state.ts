@@ -23,6 +23,7 @@ export interface WeatherForecast {
 
 export interface WeatherPeriod {
   start_time: string;
+  end_time: string;
   temperature: number;
   probability_of_precipitation: number;
 }
