@@ -1,17 +1,14 @@
-use crate::{
-    config::Config,
-    state::{Message, Tx},
-    util::http_get,
-};
+use crate::{config::Config, util::http_get};
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fmt::{self, Display},
     thread,
     time::Duration,
 };
+use tauri::{AppHandle, Emitter};
 use tracing::error;
 
 /// Time between requests
@@ -21,7 +18,7 @@ const MAX_PREDICTIONS: usize = 2;
 
 /// Fetch transit data in a loop. When we get new predictions, send a message to
 /// update state
-pub fn transit_loop(config: Config, tx: Tx) {
+pub fn transit_loop(config: Config, app_handle: AppHandle) {
     let stop_ids = config
         .transit_lines
         .iter()
@@ -32,13 +29,16 @@ pub fn transit_loop(config: Config, tx: Tx) {
         stop_ids.format(",")
     );
 
+    app_handle
+        .emit("transit", TransitPredictions::default())
+        .unwrap(); // TODO const
     loop {
         if let Ok(api_data) = http_get::<ApiPredictions>(&url) {
             let predictions = TransitPredictions::from_response(
                 &config.transit_lines,
                 api_data,
             );
-            tx.send(Message::Transit(predictions));
+            app_handle.emit("transit", predictions).unwrap(); // TODO const
         }
         thread::sleep(DATA_TTL);
     }
@@ -65,9 +65,9 @@ pub struct Stop {
 /// Predictions for all tracked transit lines/stops
 ///
 /// All hail Philip Eng
-#[derive(Debug, Default)]
-pub struct TransitPredictions {
-    pub lines: Vec<LinePredictions>,
+#[derive(Clone, Debug, Default, Serialize)]
+struct TransitPredictions {
+    lines: Vec<LinePredictions>,
 }
 
 impl TransitPredictions {
@@ -121,22 +121,22 @@ impl TransitPredictions {
 }
 
 /// Arrival predictions for all stops on a line, ready to be displayed
-#[derive(Debug)]
-pub struct LinePredictions {
-    pub name: String,
-    pub stops: Vec<StopPredictions>,
+#[derive(Clone, Debug, Serialize)]
+struct LinePredictions {
+    name: String,
+    stops: Vec<StopPredictions>,
 }
 
 /// Arrival predictions for a single stop, ready to be displayed
-#[derive(Debug)]
-pub struct StopPredictions {
-    pub name: String,
-    pub predictions: CountdownList,
+#[derive(Clone, Debug, Serialize)]
+struct StopPredictions {
+    name: String,
+    predictions: CountdownList,
 }
 
 /// List of upcoming arrivals for a stop
-#[derive(Debug)]
-pub struct CountdownList(Vec<Countdown>);
+#[derive(Clone, Debug, Serialize)]
+struct CountdownList(Vec<Countdown>);
 
 /// Convert a list of timestamps into relative offsets from now, sorting and
 /// truncating as necessary
@@ -165,8 +165,8 @@ impl Display for CountdownList {
 }
 
 /// Number of minutes until an event
-#[derive(Debug)]
-pub struct Countdown(i64);
+#[derive(Copy, Clone, Debug, Serialize)]
+struct Countdown(i64);
 
 impl Display for Countdown {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

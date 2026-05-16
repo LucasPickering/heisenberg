@@ -1,19 +1,7 @@
-# heisenberg
+# Tauri + Preact + Typescript
 
-## Pi Setup
+This template should help get you started developing with Tauri, Preact and Typescript in Vite.
 
-Raspberry Pi OS Lite (TODO get version)
+## Recommended IDE Setup
 
-- Set up hyperpixel (TODO more detail)
-- Install xorg, xterm, unclutter-xfixes
-- startx in .bash_profile
-- start xterm w/ heisenberg in .xinitrc
-- configure xterm: .Xresources
-
-## Development
-
-```sh
-mise dev # Run locally
-mise deploy # Deploy to RPi
-mise watch -- deploy # Deploy and watch files
-```
+- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
