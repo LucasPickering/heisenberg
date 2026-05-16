@@ -1,31 +1,45 @@
-import { ComponentChildren } from "preact";
-import { Line } from "preact-chartjs-2";
+import React, { useMemo } from "react";
+import { AxisOptions, Chart, UserSerie } from "react-charts";
 import { WeatherForecast } from "./state.ts";
 
 // How far in advance to show on the chart
 const TIME_SPAN_HOURS: number = 24;
+const PRIMARY_AXIS: AxisOptions<Datum> = {
+  getValue: datum => datum.date,
+};
+const SECONDARY_AXES: AxisOptions<Datum>[] = [
+  { getValue: datum => datum.temperature, min: 0, max: 100 },
+  { getValue: datum => datum.pop, min: 0, max: 100 },
+];
 
-function Weather({ weather }: { weather: WeatherForecast }): ComponentChildren {
+function Weather({ weather }: { weather: WeatherForecast }): React.ReactNode {
   if (weather.periods.length === 0) {
     // TODO better loading icon?
     return "Weather loading...";
   }
 
-  console.log(weather);
+  const data = useMemo(() => getSeries(weather), [weather]);
+  console.log(data);
   return (
     <div>
-      <Line data={getChartData(weather)} />
-      {weather.periods.map((period) => (
-        <div>
-          {period.start_time}: {period.temperature}F {period
-            .probability_of_precipitation}%
-        </div>
-      ))}
+      <Chart
+        options={{
+          primaryAxis: PRIMARY_AXIS,
+          secondaryAxes: SECONDARY_AXES,
+          data,
+        }}
+      />
     </div>
   );
 }
 
-function getChartData(weather: WeatherForecast): unknown {
+interface Datum {
+  date: Date;
+  temperature: number;
+  pop: number;
+}
+
+function getSeries(weather: WeatherForecast): UserSerie<Datum>[] {
   // Filter weather periods to just the upcoming spans we care about
   const now = new Date();
   const later = new Date(now.getTime());
@@ -35,14 +49,16 @@ function getChartData(weather: WeatherForecast): unknown {
     && period.start_time < later.toISOString()
   );
 
-  return {
-    datasets: [
-      {
-        label: "Temperature",
-        data: periods.map((period) => period.temperature),
-      },
-    ],
-  };
+  return [
+    {
+      label: "Temperature",
+      data: periods.map((period) => ({
+        date: new Date(period.start_time),
+        temperature: period.temperature,
+        pop: period.probability_of_precipitation,
+      })),
+    },
+  ];
 }
 
 export default Weather;

@@ -1,12 +1,12 @@
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useState } from "react";
 import Transit from "./Transit.tsx";
 import Weather from "./Weather.tsx";
 import "./App.css";
 import { listen } from "@tauri-apps/api/event";
-import { ComponentChildren } from "preact";
+import React from "react";
 import { Mode, TransitPredictions, WeatherForecast } from "./state.ts";
 
-function App(): ComponentChildren {
+function App(): React.ReactNode {
   const [mode, setMode] = useState<Mode>(Mode.Weather);
   const [transit, setTransit] = useState<TransitPredictions>();
   const [weather, setWeather] = useState<WeatherForecast>();
@@ -28,8 +28,8 @@ function App(): ComponentChildren {
   }, []);
 
   return (
-    <main class="container">
-      <header class="header">
+    <main className="container">
+      <header className="header">
         <ModeTab mode={Mode.Weather} label="Weather" onClick={setMode} />
         <ModeTab mode={Mode.Transit} label="Transit" onClick={setMode} />
       </header>
@@ -51,10 +51,10 @@ function ModeTab(
     label: string;
     onClick: (mode: Mode) => void;
   },
-): ComponentChildren {
+): React.ReactNode {
   return (
     <button
-      class="headerButton"
+      className="headerButton"
       type="button"
       onClick={() => onClick(mode)}
     >

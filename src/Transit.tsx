@@ -1,27 +1,27 @@
-import { ComponentChildren } from "preact";
+import React from "react";
 import { TransitPredictions } from "./state.ts";
 
 function Transit(
   { transit }: { transit: TransitPredictions },
-): ComponentChildren {
+): React.ReactNode {
   return (
     <table>
       <tbody>
         {transit.lines.map((line) => (
-          <>
+          <React.Fragment key={line.name}>
             <tr>
               <th>{line.name}</th>
             </tr>
 
             {line.stops.map(stop => (
-              <tr>
+              <tr key={stop.name}>
                 <td>{stop.name}</td>
                 <td>
                   {stop.predictions.map(minutes => `${minutes}m`).join(", ")}
                 </td>
               </tr>
             ))}
-          </>
+          </React.Fragment>
         ))}
       </tbody>
     </table>
