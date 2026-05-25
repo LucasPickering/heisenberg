@@ -27,7 +27,7 @@ use ratatui::{
         self,
         event::{
             self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode,
-            KeyEvent, MouseButton, MouseEvent, MouseEventKind,
+            KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
         },
         terminal::{EnterAlternateScreen, LeaveAlternateScreen},
     },
@@ -166,11 +166,22 @@ fn restore_terminal() {
 /// the event should be ignored
 fn input_message(event: Event) -> Option<Message> {
     match event {
+        // esc, q, or ctrl-c exits
         Event::Key(KeyEvent {
-            code: KeyCode::Esc, ..
+            code: KeyCode::Esc | KeyCode::Char('q'),
+            ..
         }) => Some(Message::Quit),
-        // Cycle mode on click/tap
-        Event::Mouse(MouseEvent {
+        Event::Key(KeyEvent {
+            code: KeyCode::Char('c'),
+            modifiers,
+            ..
+        }) if modifiers.contains(KeyModifiers::CONTROL) => Some(Message::Quit),
+        // Cycle mode on space/click/tap
+        Event::Key(KeyEvent {
+            code: KeyCode::Char(' '),
+            ..
+        })
+        | Event::Mouse(MouseEvent {
             kind: MouseEventKind::Up(MouseButton::Left),
             ..
         }) => Some(Message::NextMode),
