@@ -2,21 +2,22 @@
 PI_DIR = "/home/pi/heisenberg"
 PI_HOST = "pi@192.168.0.23"
 PI_TARGET = "armv7-unknown-linux-musleabihf"
-BINARY_PATH = "target/{{env.PI_TARGET}}/release/heisenberg"
 RUST_BACKTRACE = 1
+
+BINARY_PATH = "target/{{env.PI_TARGET}}/release/heisenberg"
 
 [tasks.build]
 description = "Build for the Pi"
-sources = ["Cargo.toml", "Cargo.lock", "src/**/*.rs"]
 outputs = ["{{env.BINARY_PATH}}"]
 run = "cargo build --release --target {{env.PI_TARGET}}"
+sources = ["Cargo.toml", "Cargo.lock", "src/**/*.rs"]
 
 [tasks.copy]
 depends = ["build"]
 description = "Copy build files to the Pi"
 run = [
-    """rsync -r -vv deploy/ {{env.PI_HOST}}:""",
-    """rsync -r -vv \
+  """rsync -r -vv deploy/ {{env.PI_HOST}}:""",
+  """rsync -r -vv \
     config.json {{env.BINARY_PATH}} {{env.PI_HOST}}:{{env.PI_DIR}}""",
 ]
 
@@ -27,6 +28,6 @@ run = "ssh {{env.PI_HOST}} \"pkill -f xterm\""
 
 [tasks.dev]
 description = "Run locally"
-run = """watchexec --restart --no-process-group \
+run = """watchexec --wrap-process=none --on-busy-update=restart --shell=none \
     --watch Cargo.toml --watch Cargo.lock --watch src/ \
     -- cargo run"""

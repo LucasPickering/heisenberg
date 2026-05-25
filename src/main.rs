@@ -61,12 +61,15 @@ fn run(config: Config, mut terminal: DefaultTerminal) {
     let (tx, rx) = mpsc::channel();
     let tx = Tx::new(tx);
 
+    // Listen for signals. The termination feature is enabled so this
+    // catches SIGTERM and SIGHUP as well
+    let ctrlc_tx = tx.clone();
+    ctrlc::set_handler(move || {
+        info!("Quit signal detected");
+        ctrlc_tx.send(Message::Quit)
+    })
+    .unwrap();
     // Spawn background tasks
-    spawn(&config, &tx, move |_, tx| {
-        // Listen for signals. The termination feature is enabled so this
-        // catches SIGTERM and SIGHUP as well
-        ctrlc::set_handler(move || tx.send(Message::Quit)).unwrap();
-    });
     spawn(&config, &tx, move |_, tx| {
         // Input handler
         loop {
