@@ -1,7 +1,7 @@
 use crate::{
     config::Config,
     state::{Message, Tx},
-    util::http_get,
+    util::http,
 };
 use chrono::{DateTime, Utc};
 use itertools::Itertools;
@@ -33,7 +33,7 @@ pub fn transit_loop(config: Config, tx: Tx) {
     );
 
     loop {
-        if let Ok(api_data) = http_get::<ApiPredictions>(&url) {
+        if let Ok(api_data) = http::<ApiPredictions>(ureq::get(&url)) {
             let predictions = TransitPredictions::from_response(
                 &config.transit_lines,
                 api_data,

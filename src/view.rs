@@ -1,5 +1,6 @@
 use crate::{
     State,
+    sports::SportsSchedule,
     state::Mode,
     transit::{LinePredictions, StopPredictions, TransitPredictions},
     util::scale_to,
@@ -14,7 +15,7 @@ use ratatui::{
     style::{Color, Modifier, Style},
     symbols,
     text::{Line, Text, ToSpan},
-    widgets::{Axis, Chart, Dataset, GraphType, Tabs, Widget},
+    widgets::{Axis, Chart, Dataset, GraphType, List, Tabs, Widget},
 };
 use std::{iter, sync::LazyLock};
 
@@ -28,19 +29,17 @@ static STYLES: LazyLock<Styles> = LazyLock::new(Styles::default);
 
 /// Draw to the terminal
 pub fn draw(frame: &mut Frame, state: &State) {
-    let [header_area, _, main_area] = Layout::vertical([
-        Constraint::Length(1),
-        Constraint::Length(1),
-        Constraint::Min(0),
-    ])
-    .areas(frame.area());
+    let [header_area, main_area] =
+        Layout::vertical([Constraint::Length(1), Constraint::Min(0)])
+            .spacing(1)
+            .areas(frame.area());
     let [mode_area, clock_area] =
         Layout::horizontal([Constraint::Min(0), Constraint::Length(5)])
             .areas(header_area);
 
     // Tab header
     frame.render_widget(
-        Tabs::new(Mode::ALL.iter().map(Mode::to_string))
+        Tabs::new(Mode::ALL.iter().copied().map(mode_to_string))
             .select(index_of(&Mode::ALL, state.mode))
             .highlight_style(STYLES.tab_highlight),
         mode_area,
@@ -52,8 +51,33 @@ pub fn draw(frame: &mut Frame, state: &State) {
     );
 
     match state.mode {
+        Mode::Sports => frame.render_widget(&state.sports, main_area),
         Mode::Transit => frame.render_widget(&state.transit, main_area),
         Mode::Weather => frame.render_widget(&state.weather, main_area),
+    }
+}
+
+impl Widget for &SportsSchedule {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let mut items: Vec<Line> = Vec::new();
+        for (date, games) in &self.games_by_date {
+            items.push(Line::styled(
+                date.format("%-m/%-d").to_string(),
+                STYLES.subheader,
+            ));
+            for game in games {
+                items.push(
+                    format!(
+                        "{} @ {} {}",
+                        game.away,
+                        game.home,
+                        game.time.format("%-I:%M%P")
+                    )
+                    .into(),
+                );
+            }
+        }
+        List::new(items).render(area, buf);
     }
 }
 
@@ -64,11 +88,9 @@ impl Widget for &TransitPredictions {
             line: &LinePredictions,
         ) -> impl Iterator<Item = Line<'_>> {
             // One row for the line label, then another row for each stop
-            iter::once(
-                Line::from(line.name.as_str()).style(STYLES.transit_line_name),
-            )
-            .chain(line.stops.iter().map(stop_to_line))
-            .chain(iter::once("".into())) // Blank line between
+            iter::once(Line::from(line.name.as_str()).style(STYLES.subheader))
+                .chain(line.stops.iter().map(stop_to_line))
+                .chain(iter::once("".into())) // Blank line between
         }
 
         fn stop_to_line(stop: &StopPredictions) -> Line<'_> {
@@ -178,8 +200,8 @@ struct Styles {
     clock: Style,
     /// Highlighted tab name
     tab_highlight: Style,
-    /// Transit line names (e.g. "86")
-    transit_line_name: Style,
+    /// A section header within a page
+    subheader: Style,
     /// Precipitation line on the weather graph
     weather_line_precipitation: Style,
     /// Temperature line on the weather graph
@@ -194,9 +216,17 @@ impl Default for Styles {
                 .fg(Color::Cyan)
                 .bg(Color::Black)
                 .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
-            transit_line_name: Style::default().add_modifier(Modifier::BOLD),
+            subheader: Style::default().add_modifier(Modifier::BOLD),
             weather_line_precipitation: Style::default().blue(),
             weather_line_temperature: Style::default().red(),
         }
+    }
+}
+
+fn mode_to_string(mode: Mode) -> &'static str {
+    match mode {
+        Mode::Weather => "WETR",
+        Mode::Transit => "TRNS",
+        Mode::Sports => "SPRT",
     }
 }

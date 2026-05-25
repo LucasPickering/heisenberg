@@ -1,7 +1,7 @@
 use crate::{
     config::Config,
     state::{Message, Tx},
-    util::http_get,
+    util::http,
 };
 use chrono::{DateTime, Local, Utc};
 use serde::Deserialize;
@@ -23,7 +23,7 @@ pub fn weather_loop(config: Config, tx: Tx) {
     );
 
     loop {
-        if let Ok(weather) = http_get(&url) {
+        if let Ok(weather) = http(ureq::get(&url)) {
             // We have a new forecast. Update state
             tx.send(Message::Weather(weather));
         }
@@ -80,12 +80,12 @@ impl ForecastPeriod {
         self.start_time.with_timezone(&Local)
     }
 
-    /// TODO
+    /// Temperature
     pub fn temp(&self) -> i32 {
         self.temperature
     }
 
-    /// TODO
+    /// Probability of precipitation, 0-100
     pub fn pop(&self) -> i32 {
         self.probability_of_precipitation.value.unwrap_or_default()
     }

@@ -8,6 +8,8 @@ use tracing::info;
 pub struct Config {
     pub forecast_office: String,
     pub forecast_gridpoint: (u32, u32),
+    /// Teams to track schedules for. Currently just MLB
+    pub sports_teams: Vec<String>,
     /// Transit lines/stops to be displayed
     pub transit_lines: Vec<TransitLine>,
 }

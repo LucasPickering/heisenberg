@@ -9,6 +9,7 @@
 //! power here!!
 
 mod config;
+mod sports;
 mod state;
 mod transit;
 mod util;
@@ -84,6 +85,7 @@ fn run(config: Config, mut terminal: DefaultTerminal) {
             }
         }
     });
+    spawn(&config, &tx, sports::sports_loop);
     spawn(&config, &tx, transit::transit_loop);
     spawn(&config, &tx, weather::weather_loop);
 
@@ -93,6 +95,7 @@ fn run(config: Config, mut terminal: DefaultTerminal) {
         match rx.recv().unwrap() {
             Message::NextMode => state.mode = state.mode.next(),
             Message::Quit => break,
+            Message::Sports(sports) => state.sports = sports,
             Message::Transit(transit) => state.transit = transit,
             Message::Weather(weather) => state.weather = weather,
         }

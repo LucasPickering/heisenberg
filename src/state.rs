@@ -1,4 +1,7 @@
-use crate::{transit::TransitPredictions, weather::WeatherForecast};
+use crate::{
+    sports::SportsSchedule, transit::TransitPredictions,
+    weather::WeatherForecast,
+};
 use std::{
     fmt::{self, Display},
     sync::mpsc::Sender,
@@ -6,20 +9,12 @@ use std::{
 
 /// Global application state. This is modified by [Message]s sent to an
 /// mpsc channel
+#[derive(Default)]
 pub struct State {
+    pub sports: SportsSchedule,
     pub transit: TransitPredictions,
     pub weather: WeatherForecast,
     pub mode: Mode,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            mode: Mode::Weather,
-            transit: TransitPredictions::default(),
-            weather: WeatherForecast::default(),
-        }
-    }
 }
 
 /// A message is sent from background threads to the main thread to modify state
@@ -28,6 +23,8 @@ pub enum Message {
     NextMode,
     /// Exit the program
     Quit,
+    /// Update sports schedule
+    Sports(SportsSchedule),
     /// Update transit predictions
     Transit(TransitPredictions),
     /// Update the weather forecast
@@ -53,28 +50,21 @@ impl Tx {
 }
 
 /// What data is being displayed?
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub enum Mode {
+    #[default]
     Weather,
     Transit,
+    Sports,
 }
 
 impl Mode {
     /// List of all modes
-    pub const ALL: [Self; 2] = [Self::Weather, Self::Transit];
+    pub const ALL: [Self; 3] = [Self::Weather, Self::Transit, Self::Sports];
 
     /// Get the next mode in the list
     pub fn next(self) -> Self {
         let current = Self::ALL.iter().position(|m| *m == self).unwrap();
         Self::ALL[(current + 1) % Self::ALL.len()]
-    }
-}
-
-impl Display for Mode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Weather => write!(f, "Weather"),
-            Self::Transit => write!(f, "Transit"),
-        }
     }
 }
